@@ -1,0 +1,19 @@
+#TODO add ref. here
+version: '2.0'
+
+services:
+  postgres:
+    image: mdillon/postgis #postgres image with postgis ready
+    ports:
+      - "54322:5432"
+    container_name: gc_postgres
+    environment:
+      - 'POSTGRES_USER: "${POSTGRES_USER}"'
+      - 'POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"'
+    volumes:
+      - v_postgres:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  v_postgres:
+    driver: local
