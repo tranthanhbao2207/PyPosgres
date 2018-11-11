@@ -13,13 +13,15 @@ Pre:
 How to run :
  - 1. Run docker postgres:
     ./docker/postgres/start.sh
+    
  - 2. Run init database (one time only):
     cd app;
     ./db.sh
+    
  - 3. Run app:
     ./run.sh
 
-Note: If files is not executable ,please execute this command :
+Note: If files is not executable, please execute this command
     sudo chmod +x <file_path>
 
 
@@ -43,8 +45,6 @@ Usage:
         ( 'POST' ) : to login
 
     -  http://localhost:4100/logout2
-
-
 
     -  http://localhost:4100/customer
         
