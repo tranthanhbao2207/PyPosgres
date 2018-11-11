@@ -1,16 +1,16 @@
-# PyPosgres
-Python 2.7 - Flask 
+#Pre
+ - python 2.7 
+ - Postgres 
+ - installed https://virtualenvwrapper.readthedocs.io/en/latest/
 
-Pre:
- - py 2.7 
- - Postgre 
- - installedhttps://virtualenvwrapper.readthedocs.io/en/latest/
-
-How to run :
+#How to run
  - create virtualenv
+ 
  - install packages :
-    pip install -r app/requirements
+   pip install -r app/requirements
+   
  - run migration (chmod +x <file> if allowed):
-    ./db.sh
+   ./db.sh
+   
  - run app (chmod +x <file> if not allowed):
-    ./run.sh
+   ./run.sh
