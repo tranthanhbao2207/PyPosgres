@@ -257,7 +257,6 @@ def customer(id=None):
 
 @app.route('/zuser', methods=["GET", "POST"])
 @app.route('/zuser/<id>', methods=["GET", "PUT"])
-@login_required
 def zuser(id=None):
     if request.method != 'GET':
         data = ujson.loads(request.data)

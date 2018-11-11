@@ -17,3 +17,4 @@ pyyaml
 unidecode
 attrs
 psycopg2
+flask_migrate
