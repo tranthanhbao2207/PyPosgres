@@ -25,6 +25,7 @@ from flask import (
     jsonify,
     redirect,
     request,
+    session,
 )
 import ujson
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -34,28 +35,31 @@ import flask_sqlalchemy as f_sa
 
 app = Flask(__name__)
 
-POSTGRES_URL="127.0.0.1:54322"
-POSTGRES_USER="postgres"
-POSTGRES_DB="test"
+POSTGRES_URL = "127.0.0.1:54322"
+POSTGRES_USER = "postgres"
+POSTGRES_DB = "test"
+
 
 class Config(object):
     DEBUG = True
     PASSWORD_HASH = 'talaai'
-    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://{user}@{url}/{db}'.format(user=POSTGRES_USER,url=POSTGRES_URL,db=POSTGRES_DB)
+    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://{user}@{url}/{db}'.format(
+        user=POSTGRES_USER, url=POSTGRES_URL, db=POSTGRES_DB)
+    SECRET_KEY = 'asd'
 
 
 app.config.from_object(Config)
 db = f_sa.SQLAlchemy(app)
 migrate = Migrate(app, db)
-login = LoginManager(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 
-
-## models.py
+# models.py
 
 class MinBase(object):
     f_changed = db.Column(db.DateTime, nullable=True, onupdate=sa.func.now())
-    deleted   = db.Column(db.Boolean, nullable=False, default=False)
+    deleted = db.Column(db.Boolean, nullable=False, default=False)
 
 
 class User(MinBase, db.Model):
@@ -68,6 +72,23 @@ class User(MinBase, db.Model):
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
+    # for flask-login
+
+    def is_active(self):
+        return True
+
+    def is_authenticated(self):
+        print('auth', self)
+        return current_user.id == self.id
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return str(self.id)
+
+    def get_auth_token(self):
+        pass
 
 
 class Customer(MinBase, db.Model):
@@ -79,35 +100,60 @@ class Customer(MinBase, db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
 
     def __repr__(self):
-            return '<Cust {}>'.format(self.name)
+        return '<Cust {}>'.format(self.name)
 
-
-## utils
+# utils
 
 
 def to_dict(row):
-        dic = {}
-        for column in row.__table__.columns:
-            dic[column.name] = str(getattr(row, column.name))
-        return dic
+    # simple result to dict
+    dic = {}
+    for column in row.__table__.columns:
+        dic[column.name] = str(getattr(row, column.name))
+    return dic
 
-## common sql
-def insert_data(cls, data):
-    statement = User.__table__.insert().values(**data)
+
+class attrdict(dict):
+    def __getattr__(self, k):
+        return self[k]
+
+    def __settattribute(self, k, v):
+        self[k] = v
+
+# common sql
+
+
+def insert_data(CLS, data):
+    # statement = CLS.__table__.insert().values(**data) -- this didnt works . weird !
     try:
-        res = db.session.execute(statement)
-        return res.inserted_primary_key
+        db.session.add(data)
+        db.session.commit()
+        new_id = data.id
+        return get_data(CLS, new_id)
     except ValueError:
         db.session.rollback()
-        raise ValueError('Failed to insert {cls} - {data}'.format(
-            cls=cls,data=data
+        raise ValueError('Failed to insert User - {data}'.format(
+            data=data
         ))
+
+
+def update_data(CLS, id, values):
+    try:
+        db.session.query(CLS.id == id).update(values)
+        db.session.commit()
+        return get_data(CLS, id)
+    except ValueError:
+        db.session.rollback()
+        raise ValueError('Failed to insert User - {data}'.format(
+            data=values
+        ))
+
 
 def get_data(CLS, id=None):
     query = db.session.query(
         CLS
     ).\
-    filter(
+        filter(
         CLS.deleted == 'F',
     )
 
@@ -120,12 +166,7 @@ def get_data(CLS, id=None):
     return res
 
 
-
-def update_data(CLS,id , data):
-    pass
-
-
-## API
+# security
 @app.route("/login2", methods=["GET", "POST"])
 def login2():
     json = request.get_json()
@@ -138,22 +179,44 @@ def login2():
         raise w_exc.BadRequest(' password ?')
 
     user = db.session.query(User). \
-        filter(User.username == username). \
+        filter(sa.or_(User.email == username, User.username == username), User.deleted == 'F'). \
         first()
 
     if user and check_password_hash(user.password, password):
-        print('ss')
-        login_user(user,remember=False)
+        login_user(user, remember=True)
         confirm_login()
-        return 200
+        return 'Login successfully !', 200
     else:
         raise w_exc.BadRequest('not username or password')
 
 
+@app.route("/logout2")
+@login_required
+def logout():
+    session["__invalidate__"] = True
+    logout_user()
+    return 'Logout successfully ', 200
+    # redirect somewhere ?
 
-## TODO: Login required
-@app.route('/customer', methods=["GET", "POST","PUT"])
-@app.route('/customer/<id>', methods=["GET", "POST","PUT"])
+
+@login_manager.user_loader
+def load_user(userid):
+    user = get_data(User, userid)
+    if not zuser:
+        return None
+    user = attrdict(**user)
+    user.is_authenticated = lambda: True
+    user.is_anonymous = lambda: False
+    user.roles = []
+    user.rights = []  # rights to update/insert entities (customer,user,...) ?
+    return user
+
+# api.py
+
+
+@app.route('/customer', methods=["GET", "POST"])
+@app.route('/customer/<id>', methods=["GET", "PUT"])
+@login_required
 def customer(id=None):
     if request.method != 'GET':
         data = ujson.loads(request.data)
@@ -162,47 +225,46 @@ def customer(id=None):
             if id is None:
                 raise w_exc.BadRequest(' Require customer id')
 
-            cust_to_update = db.session.query(User).filter(User.id == id).first()
+            cust_to_update = db.session.query(
+                User).filter(User.id == id).first()
 
             if cust_to_update is None:
                 raise w_exc.BadRequest(' invalid id !')
 
         values = {
-            k : data[k] if k != 'password' else generate_password_hash(data[k])
+            k: data[k]
             for k in data
         }
 
         customer = Customer(**values)
 
-        try:
-            if request.method == 'POST':
-                db.session.add(customer)
-            else:
-                db.session.query(Customer.id == id ).update(values)
-            db.session.commit()
-            new_id = customer.id
-            return '{action} Customer - {id}'.format(
-                    action='inserted' if request.method == 'POST' else 'updated',
-                    id=new_id,
-                ) ,200
-        except ValueError:
-            db.session.rollback()
-            raise ValueError('Failed to insert User - {data}'.format(
-                data=data
-            ))
+        res = dict()
+        if request.method == 'POST':
+            res = insert_data(Customer, customer)
+            return jsonify(res), 200
+        else:
+            res = update_data(Customer, id, values)
+
+        if hasattr(res, 'id'):
+            return jsonify(res), 200
+        else:
+            # TODO: custom error msg
+            w_exc.BadRequest(' cound not insert')
 
     res = get_data(Customer, id)
     return jsonify(res), 200
 
 
-@app.route('/zuser', methods=["GET", "POST","PUT"])
-@app.route('/zuser/<id>', methods=["GET", "POST","PUT"])
+@app.route('/zuser', methods=["GET", "POST"])
+@app.route('/zuser/<id>', methods=["GET", "PUT"])
+@login_required
 def zuser(id=None):
     if request.method != 'GET':
         data = ujson.loads(request.data)
 
         if request.method == 'POST':
-            existed = db.session.query(User).filter(User.username== data['username']).first()
+            existed = db.session.query(User).filter(
+                User.username == data['username']).first()
             if existed is not None:
                 raise w_exc.BadRequest(' existed username !')
 
@@ -212,7 +274,8 @@ def zuser(id=None):
             if not id:
                 raise w_exc.BadRequest('Update requie user id ')
 
-            user_to_update = db.session.query(User).filter(User.id == id).first()
+            user_to_update = db.session.query(
+                User).filter(User.id == id).first()
 
             if user_to_update is None:
                 raise w_exc.BadRequest('invalid requie user id ')
@@ -221,30 +284,26 @@ def zuser(id=None):
                 raise w_exc.BadRequest(' exist usernam !')
 
         values = {
-            k : data[k] if k != 'password' else generate_password_hash(data[k])
+            k: data[k] if k != 'password' else generate_password_hash(data[k])
             for k in data
         }
         user = User(**values)
-        try:
-            if request.method == 'POST':
-                db.session.add(user)
-            else:
-                db.session.query(User.id == id ).update(values)
-            db.session.commit()
-            new_id = user.id
-            return '{action} User - {id}'.format(
-                    action='inserted' if request.method == 'POST' else 'updated',
-                    id=new_id,
-                ) ,200
-        except ValueError:
-            db.session.rollback()
-            raise ValueError('Failed to insert User - {data}'.format(
-                data=data
-            ))
+
+        res = dict()
+        if request.method == 'POST':
+            res = insert_data(User, user)
+            return jsonify(res), 200
+        else:
+            res = update_data(User, id, values)
+
+        if hasattr(res, 'id'):
+            return jsonify(res), 200
+        else:
+            # TODO: custom error msg
+            w_exc.BadRequest(' cound not insert')
 
     res = get_data(User, id)
-
-    return jsonify(res),200
+    return jsonify(res), 200
 
 
 if __name__ == "__main__":
