@@ -30,7 +30,7 @@ Usage:
         (method 'POST') : create new user
         (method 'GET' ) : get all user
 
-    -  http://localhost:4100/zuser/<id>
+    -  http://localhost:4100/zuser/<_id>
         (method 'GET') : get an user
         (method 'PUT' ) : update an user
 
@@ -39,16 +39,19 @@ Usage:
 
     -  http://localhost:4100/logout2
 
-    ## for CUSTOMER routes, login is required . If not login , they will return Unauthorized
+
+
     -  http://localhost:4100/customer
         (method 'POST') : create new customer
         (method 'GET' ) : get all customer
 
-    -  http://localhost:4100/customer/<id>
+    -  http://localhost:4100/customer/<_id>
         (method 'GET') : get an customer
         (method 'PUT' ) : update an customer
 
-Note: for DELETE user/customer , we use PUT and attribute "deleted":True  in request body 
+Note: 
+- For CUSTOMER routes, login is required . If not login , they will return Unauthorized
+- For DELETE user/customer , we use PUT and attribute "deleted":True  in request body 
 
 
 
