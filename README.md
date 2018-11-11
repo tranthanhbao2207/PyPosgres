@@ -64,4 +64,12 @@ Note:
 
 
 
+Example:
+ - Create user :
+ https://2.pik.vn/2018e2721af1-1313-41bc-9227-1a5350437b09.png
  
+ - Login: 
+ https://2.pik.vn/20184ad41f13-3ff4-4180-ad7a-ba24c344f934.png
+ 
+ - Edit Customer
+ https://2.pik.vn/201814f2a51b-07f9-4d7c-af1d-c8c88c60e78a.png
