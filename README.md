@@ -27,16 +27,19 @@ Usage:
  + Tools : Postman with body is raw and type = application/json
  + Routes:
     -  http://localhost:4100/zuser
+        
         ( 'POST') : create new user
         
         ( 'GET' ) : get all user
 
     -  http://localhost:4100/zuser/<_id>
+        
         ( 'GET') : get an user
         
         ( 'PUT' ) : update an user
 
     -  http://localhost:4100/login2
+        
         ( 'POST' ) : to login
 
     -  http://localhost:4100/logout2
@@ -44,11 +47,13 @@ Usage:
 
 
     -  http://localhost:4100/customer
+        
         ( 'POST') : create new customer
         
         ( 'GET' ) : get all customer
 
     -  http://localhost:4100/customer/<_id>
+        
         ( 'GET') : get an customer
         
         ( 'PUT' ) : update an customer
