@@ -35,16 +35,17 @@ import flask_sqlalchemy as f_sa
 
 app = Flask(__name__)
 
-POSTGRES_URL = "127.0.0.1:54322"
-POSTGRES_USER = "postgres"
-POSTGRES_DB = "test"
+POSTGRES_URL      = "localhost:54322"
+POSTGRES_USER     = "postgres"
+POSTGRES_PASSWORD = "postgres"
+POSTGRES_DB       = "test"
 
 
 class Config(object):
     DEBUG = True
     PASSWORD_HASH = 'talaai'
-    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://{user}@{url}/{db}'.format(
-        user=POSTGRES_USER, url=POSTGRES_URL, db=POSTGRES_DB)
+    SQLALCHEMY_DATABASE_URI = 'postgresql://{user}:{password}@{url}/{db}'.format(
+        user=POSTGRES_USER, password=POSTGRES_PASSWORD, url=POSTGRES_URL, db=POSTGRES_DB)
     SECRET_KEY = 'asd'
 
 
@@ -306,4 +307,5 @@ def zuser(id=None):
 
 
 if __name__ == "__main__":
+    #db.create_all()
     app.run(host='0.0.0.0', debug=True, port=4100)
