@@ -170,7 +170,7 @@ def get_data(CLS, id=None):
 # security
 @app.route("/login2", methods=["GET", "POST"])
 def login2():
-    json = request.get_json()
+    json = ujson.loads(request.data)
     username = json.get('username')
     password = json.get('password')
 
@@ -217,7 +217,6 @@ def load_user(userid):
 
 @app.route('/customer', methods=["GET", "POST"])
 @app.route('/customer/<id>', methods=["GET", "PUT"])
-@login_required
 def customer(id=None):
     if request.method != 'GET':
         data = ujson.loads(request.data)
