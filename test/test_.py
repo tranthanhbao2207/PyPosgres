@@ -47,9 +47,15 @@ class FirstTest(unittest.TestCase):
         self.assertEquals(15, a)
 
 
-class CustomAssert(unittest.TestCase):
+class CustomAssert:
       def assertRequestOK(self, response):
           self.assertEquals(response.status_code, HTTPStatus.OK)
+
+      def assertResponseKeys(self, entity=None, response_dict={}):
+            self.assertEquals(
+                set(response_dict.keys())^set(get_reponse_keys(entity)),
+                set()
+            )
 
 class Login(unittest.TestCase, BaseTest):
     def test_login(self):
@@ -60,10 +66,10 @@ class Login(unittest.TestCase, BaseTest):
 
 
 class Customer(unittest.TestCase, BaseTest, CustomAssert):
-    def setUp(self):
-        response = requests.post(get_url('login2'), data=ujson.dumps(get_user_credential()))
-        self.assertEquals(response.status_code, HTTPStatus.OK)
-        self.assertEquals(response.text, 'Login successfully !')
+    # def setUp(self):
+    #     response = requests.post(get_url('login2'), data=ujson.dumps(get_user_credential()))
+    #     self.assertEquals(response.status_code, HTTPStatus.OK)
+    #     self.assertEquals(response.text, 'Login successfully !')
 
     def test_get(self):
         response = send_request(entity='customer', method='GET')
@@ -76,9 +82,11 @@ class Customer(unittest.TestCase, BaseTest, CustomAssert):
             )
 
     def test_post(self):
-        response = send_request(entity='customer', method='POST')
+        response = send_request(entity='customer', method='POST', data=ujson.dumps({"name":"customer_a", "description": "for test"}))
         body = ujson.loads(response.text)
         self.assertRequestOK(response)
+        # self.assertResponseKeys('customer', body[0])
+        ## assert response data
 
 
 if __name__ == "__main__":
