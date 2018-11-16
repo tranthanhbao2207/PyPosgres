@@ -16,13 +16,15 @@ def get_user_credential(type=None):
         'noname':{}
     }.get(type, ADMIN)
 
+
 def get_url(entity=None):
     return BASE_URL + {
         'login': 'login2',
         'customer': 'customer'
     }.get(entity, 'login2')
 
-def get_reponse_keys(entity=None):
+
+def get_response_keys(entity=None):
     return {
         'customer' : ['deleted', 'description', 'f_changed', 'name', 'id', 'user_id', 'timestamp'],
         'user'     : ['deleted', 'f_changed', 'username', 'id', 'timestamp']
@@ -35,6 +37,7 @@ def send_request(entity=None, method='GET', **kwargs):
         'POST'  : requests.post(get_url(entity), **kwargs ),
         'PUT'   : requests.put(get_url(entity), **kwargs )
     }.get(method, None)
+
 
 class BaseTest:
     pass
@@ -57,7 +60,8 @@ class CustomAssert:
                 set()
             )
 
-class Login(unittest.TestCase, BaseTest):
+
+class TestLogin(unittest.TestCase, BaseTest):
     def test_login(self):
         # use!
         response = requests.post(get_url('login2'), data=ujson.dumps(get_user_credential()))
@@ -65,11 +69,12 @@ class Login(unittest.TestCase, BaseTest):
         self.assertEquals(response.text, 'Login successfully !')
 
 
-class Customer(unittest.TestCase, BaseTest, CustomAssert):
+class TestCustomerCustomer(unittest.TestCase, BaseTest, CustomAssert):
     # def setUp(self):
     #     response = requests.post(get_url('login2'), data=ujson.dumps(get_user_credential()))
     #     self.assertEquals(response.status_code, HTTPStatus.OK)
     #     self.assertEquals(response.text, 'Login successfully !')
+
 
     def test_get(self):
         response = send_request(entity='customer', method='GET')
@@ -77,9 +82,10 @@ class Customer(unittest.TestCase, BaseTest, CustomAssert):
         self.assertEquals(response.status_code, HTTPStatus.OK)
         for item in body:
             self.assertEquals(
-                set(item.keys())^set(get_reponse_keys('customer')),
+                set(item.keys())^set(get_response_keys('customer')),
                 set()
             )
+
 
     def test_post(self):
         response = send_request(entity='customer', method='POST', data=ujson.dumps({"name":"customer_a", "description": "for test"}))

@@ -1,4 +1,8 @@
-*.pyc
-.idea/workspace.xml
 venv
 .python-version
+*.pyc
+
+.idea/workspace.xml
+.idea/*.iml
+.idea/misc.xml
+.idea/modules.xml
